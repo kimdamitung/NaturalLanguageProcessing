@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from joblib import Parallel, delayed
 from typing import List, Dict
+from itertools import product, combinations
 
 class TextClassificationModel:
     def __init__(self, df_train: pd.DataFrame, df_test: pd.DataFrame):
@@ -93,15 +94,15 @@ class TextClassificationModel:
     def hyperparameter_search(self) -> Counter:
         results = Counter()
         jobs = []
-        for stemmer, preserve_case, reduce_len, use_stopwords, use_idf, use_log in product([1, 0], repeat=6):
-            def fn(stemmer, preserve_case, reduce_len, use_stopwords, use_idf, use_log):
+        for stemmer, preserve_case, reduce_len, use_stopwords in product([1, 0], repeat=4):  # Changed repeat=5 to repeat=4
+            def fn(stemmer, preserve_case, reduce_len, use_stopwords):
                 kwargs = {
                     "stemmer": stemmer, "preserve_case": preserve_case, "reduce_len": reduce_len,
-                    "use_stopwords": use_stopwords, "use_idf": use_idf, "use_log": use_log
+                    "use_stopwords": use_stopwords  # Removed "use_log"
                 }
                 accuracy = self.evaluate(**kwargs)
                 return (frozendict(kwargs), accuracy)
-            jobs.append(delayed(fn)(stemmer, preserve_case, reduce_len, use_stopwords, use_idf, use_log))
+            jobs.append(delayed(fn)(stemmer, preserve_case, reduce_len, use_stopwords))
         results = Counter(dict(Parallel(n_jobs=-1)(jobs)))
         return Counter(dict(results.most_common()))
 
